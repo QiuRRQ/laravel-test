@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Products;
 use App\Category;
 use App\Brand;
-
+use App\OrdersDetails;
 class Variants extends Model
 {
     //
@@ -23,5 +23,8 @@ class Variants extends Model
     }
     public function hasBrand(){
         return $this->hasOneThrough(Category::class, Products::class);
+    }
+    public function hasOrder(){
+        return $this->belongsToMany(OrdersDetails::class, 'id');
     }
 }
