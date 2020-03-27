@@ -39,7 +39,9 @@ class LoginController extends Controller
             
         }
 
-        return $this->sendFailedLoginResponse($request);
+        return response()->json([
+            "error" => "user not registered, check your mail and password"
+        ], 400);
     }
     /**
      * Where to redirect users after login.

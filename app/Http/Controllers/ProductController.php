@@ -24,7 +24,7 @@ class ProductController extends Controller
         $variant = new Variants;
         $product_added = false;
 
-        //$request->product_id parameter ini akan di isi jika dia ingin menambah variant saja.
+        //$request->product_id parameter ini wajib di isi jika dia ingin menambah variant saja.
         //akan kosong jika dia menambah product baru dan variant terhadap product baru tersebut.
         if(isset($request->color) && isset($request->size) && isset($request->stock) && isset($request->price) && isset($request->disabled)){
             //add variant too
@@ -56,6 +56,7 @@ class ProductController extends Controller
                 $product_added = true;
             }
             
+            //dibawah ini akan menambahkan variantnya
             if(preg_match("/[^a-zA-Z]+/", $request->color)){
                 
                 return response()->json([
@@ -186,6 +187,153 @@ class ProductController extends Controller
                 "message" => "failed to update"
             ], 400);
         }
+    }
+
+    //untuk update variant stock
+    public function variant_update(Request $request, $id){
+        if(Variants::where('id', $id)->exists()){
+
+            $variant = Variants::find($id);
+            
+
+            if(is_null($request->color)){
+                $variant->color = $variant->color;
+            }else{
+                if(preg_match("/[^a-zA-Z]+/", $request->color)){
+                
+                    return response()->json([
+                        "message" => "color harus memakai huruf"
+                    ], 400);
+                }else{
+                    $input = strtolower($request->color);
+                    $variant->color = $input;
+                }
+            }
+            if(is_null($request->size)){
+                $variant->size = $variant->size;
+            }else{
+                if(preg_match("/[^a-zA-Z]+/", $request->size)){
+                    return response()->json([
+                        "message" => "size tidak boleh kombinasi angka dan huruf ataupun simbol"
+                    ], 400);
+                }else{
+                    $input = strtolower($request->size);
+                    $variant->size = $input;
+                }
+            }
+            if(is_null($request->stock)){
+                $variant->stock = $variant->stock;
+            }else{
+                if(preg_match("/[^0-9]+/", $request->stock)){
+                
+                    return response()->json([
+                        "message" => "stock harus angka"
+                    ], 400);
+                }else{
+                    $input = strtolower($request->stock);
+                    $variant->stock = $input;
+                }
+            }
+            if(is_null($request->price)){
+                $variant->price = $variant->price;
+            }else{
+                if(preg_match("/[^0-9]+/", $request->price)){
+                
+                    return response()->json([
+                        "message" => "price harus angka"
+                    ], 400);
+                }else{
+                    $input = strtolower($request->price);
+                    $variant->price = $input;
+                }
+            }
+            
+            is_null($request->product_id) ? $variant->products_id = $variant->products_id : $variant->products_id = $request->product_id;
+            is_null($request->disabled) ? $variant->disabled = $variant->disabled : $variant->disabled = $request->disabled;
+            
+            $variant->save();
+            
+            return response()->json([
+                "message" => "update success"
+            ], 200);
+        }else{
+            return response()->json([
+                "message" => "failed to update"
+            ], 400);
+        }
+    }
+
+    //ini akan menambah stock pada variant yang ada. jadi stock saat ini ditambah input
+    public function add_variant_stock(Request $request, $id){
+        if(is_null($request->stock)){
+            return response()->json([
+                "Error" => "stock is mantadory parameter"
+            ], 400);
+        }else{
+            if(Variants::where('id', $id)->exists()){
+                $variant = Variants::find($id);
+                if(preg_match("/[^0-9]+/", $request->stock)){
+                    return response()->json([
+                        "Error" => "stock harus angka"
+                    ], 400);
+                }else{
+                    $variant->stock = $variant->stock + $request->stock;
+                }
+                               
+                $variant->save();
+                return response()->json([
+                    "message" => "variant stock berhasil ditambah",
+                    "data" => array([
+                        "variant_id" => $variant->id,
+                        "stock" => $variant->stock
+                    ])
+                ]);
+            }else{
+                return response()->json([
+                    "Error" => "id variant tidak ditemukan"
+                ], 400);
+            }
+        }
+    }
+
+    //ini untuk get stock semua product
+    public function getProductStock(){
+        $product = new Products;
+        $variant = new Variants;
+        $temp = $product->with([
+            'brand',
+            'category' => function($q){
+                if(isset($request->category))
+                    $q->where('name', '=', $request->category);
+            }, 
+            'variant' => function($query){ //ini akan memfilter variant yang di tampilkan pada produk. jadi hanya variant yang lolos filter yang akan ditampilkan.
+                
+                if(isset($request->price_min) || isset($request->price_max) && $request->price_min < $request->price_max){
+                    $query->where('price', '>=', $request->price_min);
+                    $query->where('price', '<=', $request->price_max);
+                }
+            }
+            ])->whereHas('variant')//ini akan menampilkan product yang setidaknya memiliki 1 variant. filter terhadap bariant 
+                                    //yang akan ditampilkan, tak bisa digunakan disini. ini hanya akan memfilter produk berdasarkan variant
+            
+            ->get();
+        
+        return response($temp->toJson(JSON_PRETTY_PRINT), 200);
+    }
+
+    //ini untuk getStock per product
+    public function getStockBy(Request $request, $id){
+        $product = new Products;
+        $variant = new Variants;
+        if(Variants::where('id', $id)->exists()){
+            $myProduct = $product->with(['brand', 'category', 'variant'])->find($id);
+            return response($myProduct->toJson(JSON_PRETTY_PRINT), 200);
+        }else{
+            return response()->json([
+                "Error" => "variant yang anda cari tidak ditemukan"
+            ], 400);
+        }
+        
     }
 
     public function variant_destroy($id){

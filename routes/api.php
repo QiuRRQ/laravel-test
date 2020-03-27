@@ -39,4 +39,16 @@ Route::middleware('auth:api')->group(function(){
     Route::get('/product', 'ProductController@getProductBy');
 
     Route::delete('/variant/{id}', 'ProductController@variant_destroy');
+
+    /*route di bawah ini adalah route untuk soal test minggu ke 4. kenapa tidak membuat project baru, pada soal nomer 6 butuh category*/
+
+    Route::put('/AddStock/{id}', 'ProductController@add_variant_stock');
+    Route::put('/stock/{id}', 'ProductController@variant_update'); //ini pakai nama route stock untuk sebagai penunjuk bahwa ini bisa digunakan untuk update stock.
+    Route::get('/stock', 'ProductController@getProductStock');
+    Route::get('/stock/{id}', 'ProductController@getStockBy');
+
+    Route::post('/order', 'OrderController@create');
+    Route::get('/order', 'OrderController@getOrder');
+    Route::get('/order/{id}', 'OrderController@getCustomerOrder');
+
 });
